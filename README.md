@@ -1,4 +1,4 @@
-# virtio-hands-on
+# Virtio Hands On
 Scripts and ansible playbooks for Virtio Hands-On blog series.
 
 The Virtio blog series are split into three threads:
