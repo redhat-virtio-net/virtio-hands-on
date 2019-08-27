@@ -1,0 +1,4 @@
+localhost-py3 ansible_host=localhost ansible_connection=local ansible_python_interpreter=/usr/bin/python3
+
+[kvm-host]
+localhost-py3

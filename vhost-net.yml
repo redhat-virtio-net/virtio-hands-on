@@ -1,0 +1,23 @@
+# Playbook to set up a basic vhost-net host on Fedora30
+#
+- name: Vhost-Net Setup
+  hosts: kvm-host
+  vars_files:
+    - ./vhost-net_settings.yml
+  tasks:
+  - debug: 
+      msg: Debug mode is enabled
+  - name: install dependencies
+    yum:
+      name:
+        - qemu-kvm
+        - libvirt-daemon-qemu
+        - libvirt-daemon-kvm
+        - libvirt
+        - iperf3
+        - virt-install
+        - libguestfs-tools-c
+      state: installed
+    become: yes
+
+
