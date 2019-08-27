@@ -17,6 +17,7 @@
         - iperf3
         - virt-install
         - libguestfs-tools-c
+        - python3-lxml
       state: installed
     become: yes
 
