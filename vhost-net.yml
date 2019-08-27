@@ -20,4 +20,97 @@
       state: installed
     become: yes
 
+# In order to run libvirt commands, we need to add the user to the
+# libvirt group
+  - name: Add user to libvirt group 
+    user:
+      groups:
+        - libvirt
+      name: "{{ ansible_facts['user_id'] }}"
+      append: yes
+    become: yes
+
+  - name: Restart libvirtd
+    service:
+      name: libvirtd
+      state: restarted
+    become: yes
+
+# Download base image if it does not exist
+  - name: Check if the base image file exists
+    stat:
+      path: "{{ base_image_file }}"
+    register: base_image
+  
+  - name: Download base image
+    get_url:
+      url: '{{ remote_base_file }}'
+      dest: "{{ base_image_file }}"
+      mode: '0640'
+    when:
+      - base_image.stat.exists == False 
+    become: yes
+  
+  # Create our VM image using the base image as backing store
+  - name: Create image
+    command: >
+        qemu-img create -f qcow2 -b 
+         {{ base_image_file }}
+         {{ vm_image_file }}
+         20G
+    become: yes
+
+  - name: Prepare image
+    command: >
+       virt-sysprep --root-password password:{{ guest_root_password }}
+         --uninstall cloud-init 
+         --selinux-relabel 
+         -a {{ vm_image_file }}
+    environment:
+      LLIBVIRT_DEFAULT_URI: qemu:///system
+    become: yes
+
+# Create and start the default network
+  - name: Define default network
+    virt_net:
+      command: define
+      name: virtio-default
+      xml: "{{ lookup('file', 'virtio-default-network.xml') }}"
+  
+  - name: Start default network
+    virt_net:
+      state: active
+      name: virtio-default
+
+# Create the VM
+# Before actually creating it, let's ensure there is no VM with the same name
+# is already configured
+  - name: Destroy the guest VM (in case name colision)
+    virt:
+      name: "{{ guest_name }}"
+      state: destroyed
+    ignore_errors: true
+  
+  - name: Undefine guest vm (in case name colision)
+    virt:
+      command: undefine
+      name: "{{ guest_name }}"
+    ignore_errors: true
+
+  - name: Define the VM
+    virt:
+      command: define
+      name: "{{ guest_name}}"
+      xml: "{{ lookup('template', 'vhost-net_guest.xml.j2') }}"
+      autostart: no
+
+  - name: Start the VM
+    virt:
+      name: "{{ guest_name}}"
+      state: running
+
+  - debug: 
+      msg: >
+        "Now the Guest VM is running. To go inside the VM type
+        virsh console {{ guest_name }}"
 

@@ -1,1 +1,7 @@
-mac: 02:ca:fe:fa:ce:01
+base_image_file: /var/lib/libvirt/images/Fedora-Cloud-Base-30-1.2.x86_64.qcow2
+remote_base_file: http://fedora.inode.at/releases/30/Cloud/x86_64/images/Fedora-Cloud-Base-30-1.2.x86_64.qcow2
+vm_image_file: /var/lib/libvirt/images/virtio-test1.qcow2
+
+guest_name: virtio-test1
+guest_mac: 02:ca:fe:fa:ce:01
+guest_root_password: virtioRocks2019 # Change this password to your own
