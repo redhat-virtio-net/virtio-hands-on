@@ -39,7 +39,7 @@ The supported environments are:
 you will be asked for the BECOME password (i.e: your sudo password)
 
 ## Vhost-net
-In order to set up the vhost-net environment, first you should check the settings file that can be found at vars vhost-net_settings.yml.
+In order to set up the vhost-net environment, first you should check the settings file that can be found at `vars/vhost-net_settings.yml`.
 Customize any variable you consider necessary (for example, the guest's root password).
 
 Then, run the following command:
