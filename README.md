@@ -9,12 +9,14 @@ The Virtio blog series are split into three threads:
 
 Here is a complete index of all the posts that comprise the blog series.
 
+For a high level introduction of what is virtio technology refer to [the introduction blog](https://www.redhat.com/en/blog/introducing-virtio-networking-combining-virtualization-and-networking-modern-it).
+
 
 | Topic                                | Solution Overview | Deep Dive | Hands On |
 |--------------------------------------|-------------------|-----------|----------|
-| Introduction and vhost-net           | URL               | UL        | URL      |
-| User-space networking and vhost-user | URL               | URL       | URL      |
-| HW offloading                        | URL               | URL       | URL      |
+| **vhost-net**           | [Introduction to virtio-networking and vhost-net](https://www.redhat.com/en/blog/introduction-virtio-networking-and-vhost-net)               | [Deep dive into Virtio-networking and vhost-net](https://www.redhat.com/en/blog/deep-dive-virtio-networking-and-vhost-net) | [Hands on vhost-net: Do. Or do not. There is no try](https://www.redhat.com/en/blog/hands-vhost-net-do-or-do-not-there-no-try)  | 
+| **vhost-user** | pending               | pending       | pending      |
+| **HW offloading** | pending               | pending       | pending      |
 
 
 
