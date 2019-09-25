@@ -3,7 +3,7 @@
 - name: Vhost-Net Setup
   hosts: kvm-host
   vars_files:
-    - ./vhost-net_settings.yml
+    - vars/vhost-net_settings.yml
   tasks:
   - debug: 
       msg: Debug mode is enabled
