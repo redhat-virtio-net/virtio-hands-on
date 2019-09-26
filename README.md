@@ -28,7 +28,7 @@ a number of different virtio environments for testing and debugging purposes
 The supported environments are:
 
 - vhost-net
-- TBD
+- vhost-user
 - TBD
 
 
@@ -47,3 +47,50 @@ Then, run the following command:
 ```
     $ ansible-playbook vhost-net.yml
 ```
+
+## Vhost-user
+In order to set up the vhost-user environment, first you should check the settings file that can be found at `vars/vhost-user_settings.yml`.
+Customize any variable you consider necessary (for example, the guest's root password).
+
+Then, manually modify your kernel's command line parameters to add hugepage support. The following command will add 6 hugepages of size 1G:
+
+```
+grubby --args=“default_hugepagesz=1G hugepagesz=1G hugepages=6" --update-kernel $(grubby --default-kernel)
+```
+
+A reboot is needed for the command line options to take effect.
+
+Finaly, run the following command:
+
+```
+    $ ansible-playbook vhost-user.yml
+```
+
+The ansible script will:
+
+- Set up a virtual machine running Centos 7
+- Configure two vhost-user interfaces on it
+- Run DPDK's testpmd application on the host. The application is interactive so
+it will open inside a tmux session
+- Start the guest and configure hugepages on it
+- Start DPDK's testpmd application on the guest as well (also inside a tmux session)
+
+After running the playbook you can:
+- Inspect the host's testpmd application by running:
+
+```
+$ tmux attach-session testpmd-session
+```
+
+- Jump into the guest by running:
+
+```
+$ export LIBVIRT_DEFAULT_URI="qemu:///system"; virsh command vhuser-test1
+```
+
+- Inspect the guest's testpmd application by running:
+
+```
+$ tmux attach-session -t guest-testpmd-session
+```
+
