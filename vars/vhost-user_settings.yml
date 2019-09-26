@@ -1,0 +1,29 @@
+base_image_file: /var/lib/libvirt/images/Centos-7-x86_65-GenericCloud.qcow2
+remote_base_file: https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2
+vm_image_file: /var/lib/libvirt/images/vhuser-test1.qcow2
+
+guest_name: vhuser-test1
+guest_mac: 02:ca:fe:fa:ce:05 # Default management MAC address
+guest_ip: 192.168.200.10    # Default management IP address
+guest_root_password: virtioRocks2019 # Change this password to your own
+guest_cmdline_options: default_hugepagesz=1G hugepagesz=1G hugepages=1 intel_iommu=on iommu=pt
+
+# Vhost-User interfaces
+vhost_ifaces:
+  - mac: 56:48:4f:53:54:01
+    pci_addr:
+      domain: '0000'
+      bus: '0a'
+      slot: '00'
+      function: '0'
+    rx_queue_size: 256
+    path: /tmp/vhost-user1
+  - mac: 56:48:4f:53:54:02
+    pci_addr:
+      domain: '0000'
+      bus: '0b'
+      slot: '00'
+      function: '0'
+    rx_queue_size: 256
+    path: /tmp/vhost-user2
+

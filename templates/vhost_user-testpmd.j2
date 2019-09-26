@@ -1,0 +1,16 @@
+#!/bin/bash
+tmux new-session -s testpmd-session -d " \
+    testpmd -l 0,6,7 \
+        --socket-mem=1024 \
+        -n 4 \
+    {% for iface in vhost_ifaces %}
+        --vdev 'net_vhost{{ loop.index }},iface={{ iface.path }}' \
+    {% endfor %}
+        -- \
+        --portmask=f \
+        -i \
+        --rxq=1 \
+        --txq=1 \
+        --nb-cores=2 \
+        --forward-mode=io \
+        --auto-start || cat "

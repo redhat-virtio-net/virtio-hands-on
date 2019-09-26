@@ -1,0 +1,16 @@
+#!/bin/bash
+tmux new-session -s guest-testpmd-session -d " \
+    testpmd -l 0,1,2 \
+        --socket-mem=1024 \
+        -n 4 \
+        -- \
+        --portmask=f \
+        -i \
+        --portmask=3 \
+        --rxq=1 \
+        --txq=1 \
+        --rxd=256 \
+        --txd=256 \
+        --nb-cores=2 \
+        --forward-mode=io \
+        --auto-start || cat "
