@@ -23,21 +23,43 @@
     become: yes
 
 # Check hugepages are configured
-  - name: Check hugepages are configured
-    shell: |
-      set -e
-      args=$(grubby --info=$(grubby --default-kernel) | grep args)
-      echo $args | grep hugepages=
-      echo $args | grep hugepagesz=
-    become: yes
-    register: cmdline_search
-    ignore_errors: yes
+  - name: Check if we have hugepages
+    shell: awk -e '/Hugepagesize:/ {print $2}' /proc/meminfo
+    register: hp_size
 
-  - name: Fail if hugepages are not configured
-    fail:
-      msg:
-      - "Hugepages are not configured"
-    when: cmdline_search.rc != 0
+  - block: # Grub configuration block
+      - name: Prompt user before modifying grub configuration
+        pause:
+          prompt: |
+            Huge pages are not configured in the host system.
+            Do you want to automatically configure hugepages for you? [yes / no]
+        register: prompt_confirm
+
+      - name: Fail if no hugepages is to be configured
+        fail:
+          msg: "Please configure hugepages manually"
+        when:
+          - prompt_confirm.user_input != "yes"
+
+      - name: Prompt user for number of hugepages
+        pause:
+          prompt: How many hugepages would you want to configure (size = 1GiB)?
+        register: prompt_hugepages
+        when:
+          - prompt_confirm.user_input == "yes"
+
+      - name: Add grubby configuration
+        shell:  grubby --args="default_hugepagesz=1G hugepagesz=1G hugepages={{ prompt_hugepages.user_input }} " --update-kernel $(grubby --default-kernel)
+        become: yes
+
+      - name: End play to reboot
+        debug:
+          msg: "Please reboot and run the playbook again"
+
+# End the playbook
+      - meta: end_play
+    when: hp_size.stdout != "1048576"
+    # End of grub configuration block
 
 # In order to run libvirt commands, we need to add the user to the
 # libvirt group
