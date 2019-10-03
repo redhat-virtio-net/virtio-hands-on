@@ -55,7 +55,7 @@ Customize any variable you consider necessary (for example, the guest's root pas
 Then, manually modify your kernel's command line parameters to add hugepage support. The following command will add 6 hugepages of size 1G:
 
 ```
-grubby --args=“default_hugepagesz=1G hugepagesz=1G hugepages=6" --update-kernel $(grubby --default-kernel)
+grubby --args='default_hugepagesz=1G hugepagesz=1G hugepages=6' --update-kernel $(grubby --default-kernel)
 ```
 
 A reboot is needed for the command line options to take effect.
