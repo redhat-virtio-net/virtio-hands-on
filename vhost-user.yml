@@ -158,7 +158,7 @@
       src: vhost_user-testpmd.j2
 
   - name: Kill existing instances of testpmd
-    shell: pgrep testpmd | xargs kill
+    shell: pgrep testpmd | xargs --no-run-if-empty kill
     ignore_errors: true
     become: yes
 
@@ -259,7 +259,7 @@
     with_items: "{{ vhost_ifaces }}"
 
   - name: killing testpmd if running
-    shell: pgrep testpmd | xargs kill
+    shell: pgrep testpmd | xargs --no-run-if-empty kill
     ignore_errors: true
 
   - name: killing existing tmux sessions
