@@ -1,0 +1,286 @@
+# Playbook to set up a basic vhost-user development environment
+#
+- name: Vhost-User Setup
+  hosts: kvm-host
+  vars_files:
+    - vars/vhost-user_settings.yml
+  tasks:
+  - name: install dependencies
+    yum:
+      name:
+        - qemu-kvm
+        - libvirt-daemon-qemu
+        - libvirt-daemon-kvm
+        - libvirt
+        - iperf3
+        - virt-install
+        - libguestfs-tools-c
+        - python3-lxml
+        - dpdk-tools
+        - tmux
+        - grubby
+      state: installed
+    become: yes
+
+# Check hugepages are configured
+  - name: Check if we have hugepages
+    shell: awk -e '/Hugepagesize:/ {print $2}' /proc/meminfo
+    register: hp_size
+
+  - block: # Grub configuration block
+      - name: Prompt user before modifying grub configuration
+        pause:
+          prompt: |
+            Huge pages are not configured in the host system.
+            Do you want to automatically configure hugepages for you? [yes / no]
+        register: prompt_confirm
+
+      - name: Fail if no hugepages is to be configured
+        fail:
+          msg: "Please configure hugepages manually"
+        when:
+          - prompt_confirm.user_input != "yes"
+
+      - name: Prompt user for number of hugepages
+        pause:
+          prompt: How many hugepages would you want to configure (size = 1GiB)?
+        register: prompt_hugepages
+        when:
+          - prompt_confirm.user_input == "yes"
+
+      - name: Add grubby configuration
+        shell:  grubby --args="default_hugepagesz=1G hugepagesz=1G hugepages={{ prompt_hugepages.user_input }} " --update-kernel $(grubby --default-kernel)
+        become: yes
+
+      - name: End play to reboot
+        debug:
+          msg: "Please reboot and run the playbook again"
+
+# End the playbook
+      - meta: end_play
+    when: hp_size.stdout != "1048576"
+    # End of grub configuration block
+
+# In order to run libvirt commands, we need to add the user to the
+# libvirt group
+  - name: Add user to libvirt group
+    user:
+      groups:
+        - libvirt
+      name: "{{ ansible_facts['user_id'] }}"
+      append: yes
+    become: yes
+
+  - name: Restart libvirtd
+    service:
+      name: libvirtd
+      state: restarted
+    become: yes
+
+# Download base image if it does not exist
+  - name: Check if the base image file exists
+    stat:
+      path: "{{ base_image_file }}"
+    register: base_image
+
+  - name: Download base image
+    get_url:
+      url: '{{ remote_base_file }}'
+      dest: "{{ base_image_file }}"
+      mode: '0640'
+    when:
+      - base_image.stat.exists == False
+    become: yes
+
+
+# Create and start the default network
+  - name: Destroy previous default network
+    virt_net:
+      state: absent
+      name: virtio-default
+
+  - name: Define default network
+    virt_net:
+      command: define
+      name: virtio-default
+      xml: "{{ lookup('template', 'virtio-default-network.xml.j2') }}"
+
+  - name: Start default network
+    virt_net:
+      state: active
+      name: virtio-default
+
+# Create the VM
+# Before actually creating it, let's ensure there is no VM with the same name
+# is already configured
+  - name: Destroy the guest VM (in case name colision)
+    virt:
+      name: "{{ guest_name }}"
+      state: destroyed
+    ignore_errors: true
+
+# Create our VM image using the base image as backing store
+  - name: Create image
+    command: >
+        qemu-img create -f qcow2 -b
+         {{ base_image_file }}
+         {{ vm_image_file }}
+         20G
+    become: yes
+
+  - name: Prepare image
+    command: >
+       virt-sysprep --root-password password:{{ guest_root_password }}
+         --uninstall cloud-init
+         --selinux-relabel
+         -a {{ vm_image_file }}
+         --hostname {{ guest_name }}
+    environment:
+      LIBVIRT_DEFAULT_URI: qemu:///system
+    become: yes
+
+  - name: Undefine guest vm (in case name colision)
+    virt:
+      command: undefine
+      name: "{{ guest_name }}"
+    ignore_errors: true
+
+  - name: Define the VM
+    virt:
+      command: define
+      name: "{{ guest_name}}"
+      xml: "{{ lookup('template', 'vhost-user_guest.xml.j2') }}"
+      autostart: no
+
+  - name: Generate testpmd command
+    template:
+      dest: /tmp/tpmd.sh
+      src: vhost_user-testpmd.j2
+
+  - name: Kill existing instances of testpmd
+    shell: pgrep testpmd | xargs kill
+    ignore_errors: true
+    become: yes
+
+  - name: Kill existing tmux sessions
+    shell: tmux kill-session -t testpmd-session
+    ignore_errors: true
+    become: yes
+
+  - name: rm previous socket files
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    with_items: " {{ vhost_ifaces }}"
+    become: yes
+
+  - name: Start testpmd in the host
+    shell: sh /tmp/tpmd.sh
+    become: yes
+
+  - name: Wait for testpmd to initialize
+    wait_for:
+      timeout: 5
+
+  - name: Start the VM
+    virt:
+      name: "{{ guest_name}}"
+      state: running
+
+  - name: Wait for port 22 to become available on guest
+    wait_for:
+      host: "{{ guest_ip }}"
+      port: 22
+      delay: 5
+
+# Add the guest to the inventory to continue running commands in it
+  - name:
+    add_host:
+      name: "{{ guest_ip }}"
+      group: guests
+      ansible_ssh_pass: "{{ guest_root_password }}"
+      ansible_ssh_user: root
+      ansible_ssh_common_args: -o UserKnownHostsFile="/dev/null" -o StrictHostKeyChecking=no
+
+- name: Vhost-User Guest Setup
+  hosts: guests
+  vars_files:
+    - vars/vhost-user_settings.yml
+  tasks:
+  - name: Install dependencies
+    yum:
+      state: installed
+      name:
+        - dpdk-tools
+        - tmux
+        - pciutils
+
+  - name: Check if needed cmndline options are found
+    shell: grep GRUB_CMDLINE_LINUX /etc/default/grub | grep -c "{{ guest_cmdline_options }}"
+    register: cmdline_opts
+    ignore_errors: true
+
+  - name: Edit commandline options
+    lineinfile:
+      dest: /etc/default/grub
+      regexp: 'GRUB_CMDLINE_LINUX="(.*)"'
+      line: 'GRUB_CMDLINE_LINUX="\1 {{ guest_cmdline_options }}"'
+      backrefs: yes
+    when: cmdline_opts.stdout == "0"
+
+  - name: update-grub
+    shell: grub2-mkconfig > /boot/grub2/grub.cfg
+    when: cmdline_opts.stdout == "0"
+
+  - name: reboot if we need it
+    reboot:
+      test_command: cat /proc/cmdline | grep "{{ guest_cmdline_options }}"
+    when: cmdline_opts.stdout == "0"
+
+  - name: Wait 60 seconds for guest to become available again
+    wait_for_connection:
+    when: cmdline_opts.stdout == "0"
+
+  - name: insert vfio module
+    modprobe:
+      name: vfio
+      state: present
+      params: "enable_unsafe_noiommu_mode=1"
+
+  - name: insert vfio-pci module
+    modprobe:
+      name: vfio-pci
+      state: present
+
+  - name: bind NICS to vfio driver
+    command: >
+      dpdk-devbind -b vfio-pci
+      {{ (item.pci_addr.domain + ':' + item.pci_addr.bus + ':' + item.pci_addr.slot + '.' + item.pci_addr.function ) }}
+    with_items: "{{ vhost_ifaces }}"
+
+  - name: killing testpmd if running
+    shell: pgrep testpmd | xargs kill
+    ignore_errors: true
+
+  - name: killing existing tmux sessions
+    shell: tmux kill-session -t guest-testpmd-session
+    ignore_errors: true
+
+  - name: Generate guest testpmd command
+    template:
+      dest: /tmp/tpmd.sh
+      src: vhost_user-guest-testpmd.j2
+
+  - name: Start testpmd in the host
+    shell: sh /tmp/tpmd.sh
+
+  - debug:
+      msg:
+      - "Now the Guest VM is running. To go inside the VM type:
+           $ virsh console {{ guest_name }}"
+      - "A Tmux session has been created in the host. Attach to it by running:
+           $ sudo tmux atach-session"
+      - "A Tmux session has been created in the guest. Attach to it by running:
+           $ tmux atach-session"
+
+

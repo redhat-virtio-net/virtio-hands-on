@@ -1,0 +1,16 @@
+<network>
+  <name>virtio-default</name>
+  <bridge name="virtiobr0"/>
+  <forward/>
+  <dns>
+    <host ip="{{ guest_ip }}">
+      <hostname>{{ guest_name }}.testvirtio.com</hostname>
+    </host>
+  </dns>
+  <ip address="192.168.200.1" netmask="255.255.255.0">
+    <dhcp>
+      <range start="192.168.200.2" end="192.168.200.254"/>
+      <host mac="{{ guest_mac }} " ip="{{ guest_ip }}"/>
+    </dhcp>
+  </ip>
+</network>
