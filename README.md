@@ -15,7 +15,7 @@ For a high level introduction of what is virtio technology refer to [the introdu
 | Topic                                | Solution Overview | Deep Dive | Hands On |
 |--------------------------------------|-------------------|-----------|----------|
 | **vhost-net**           | [Introduction to virtio-networking and vhost-net](https://www.redhat.com/en/blog/introduction-virtio-networking-and-vhost-net)               | [Deep dive into Virtio-networking and vhost-net](https://www.redhat.com/en/blog/deep-dive-virtio-networking-and-vhost-net) | [Hands on vhost-net: Do. Or do not. There is no try](https://www.redhat.com/en/blog/hands-vhost-net-do-or-do-not-there-no-try)  | 
-| **vhost-user** | pending               | pending       | pending      |
+| **vhost-user** | [How vhost-user came into being: Virtio-networking and DPDK](https://www.redhat.com/en/blog/how-vhost-user-came-being-virtio-networking-and-dpdk) | [A journey to the vhost-users realm](https://www.redhat.com/en/blog/journey-vhost-users-realm)       | [Hands on vhost-user: A warm welcome to DPDK ](https://www.redhat.com/en/blog/hands-vhost-user-warm-welcome-dpdk) |
 | **HW offloading** | pending               | pending       | pending      |
 
 
