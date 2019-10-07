@@ -49,17 +49,46 @@ Then, run the following command:
 ```
 
 ## Vhost-user
+### Prerequisites
 In order to set up the vhost-user environment, first you should check the settings file that can be found at `vars/vhost-user_settings.yml`.
 Customize any variable you consider necessary (for example, the guest's root password).
 
-Then, manually modify your kernel's command line parameters to add hugepage support. The following command will add 6 hugepages of size 1G:
+We need to check if your processor supports some features: ssse3 instructions and
+hugepage. You can check it in `/proc/cpuinfo`:
+
+```
+$ grep '^flags' /proc/cpuinfo | uniq
+flags           : [...] pdpe1gb [...] ssse3 [...]
+```
+
+If you don't see them in `/proc/cpuinfo` output, you still can test the
+described environment, but you will need either to use the 2M pages (if you
+don't see pdpe1gb but your processor still supports 2m ones) or recompile dpdk.
+Both options are, currently, out of this script.
+
+### Hugepages
+
+Note: ansible script is able to perform this steps automatically, so you only
+need to read this section if you are interested in do it manually.
+
+Modify your kernel's command line parameters to enable 1G hugepage. The
+following command will add 6 hugepages of size 1G:
 
 ```
 grubby --args='default_hugepagesz=1G hugepagesz=1G hugepages=6' --update-kernel $(grubby --default-kernel)
 ```
 
-A reboot is needed for the command line options to take effect.
+A reboot is needed for the command line options to take effect. You can check
+that the change has been applied in `/proc/cmdline` and `/proc/meminfo`:
 
+```
+$ grep huge /proc/cmdline
+[...] default_hugepagesz=1G hugepagesz=1G hugepages=6
+$ grep DirectMap1G /proc/meminfo
+DirectMap1G:    14680064 kB
+```
+
+### Run the script
 Finaly, run the following command:
 
 ```
