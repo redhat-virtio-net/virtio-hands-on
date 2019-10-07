@@ -17,7 +17,7 @@ vhost_ifaces:
       slot: '00'
       function: '0'
     rx_queue_size: 256
-    path: /tmp/vhost-user1
+    path: /var/run/libvirt/qemu/vhost-user1
   - mac: 56:48:4f:53:54:02
     pci_addr:
       domain: '0000'
@@ -25,5 +25,5 @@ vhost_ifaces:
       slot: '00'
       function: '0'
     rx_queue_size: 256
-    path: /tmp/vhost-user2
+    path: /var/run/libvirt/qemu/vhost-user2
 

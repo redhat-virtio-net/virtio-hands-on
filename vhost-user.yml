@@ -71,15 +71,13 @@
       name: "{{ ansible_facts['user_id'] }}"
       append: yes
     become: yes
-    register: libvirt_config
 
-# Restart libvirtd if something changed
-  - name: Restart libvirtd
+# libvirtd if something changed
+  - name: Start libvirtd
     service:
       name: libvirtd
-      state: restarted
+      state: started
     become: yes
-    when: libvirt_config.changed
 
 # Download base image if it does not exist
   - name: Check if the base image file exists
@@ -187,6 +185,11 @@
       path: "{{ item.path }}"
       timeout: 5
     with_items: " {{ vhost_ifaces }}"
+
+  - name: Change the svirt_t domain to permissive
+    selinux_permissive:
+      name: svirt_t
+      permissive: true
 
   - name: Start the VM
     virt:
