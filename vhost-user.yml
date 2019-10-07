@@ -277,7 +277,7 @@
       dest: /tmp/tpmd.sh
       src: vhost_user-guest-testpmd.j2
 
-  - name: Start testpmd in the host
+  - name: Start testpmd in the guest
     shell: sh /tmp/tpmd.sh
 
   - debug:
