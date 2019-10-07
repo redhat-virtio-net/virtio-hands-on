@@ -16,6 +16,7 @@
         - virt-install
         - libguestfs-tools-c
         - python3-lxml
+        - sshpass
         - dpdk-tools
         - tmux
         - grubby
