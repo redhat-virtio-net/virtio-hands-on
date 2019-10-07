@@ -71,12 +71,15 @@
       name: "{{ ansible_facts['user_id'] }}"
       append: yes
     become: yes
+    register: libvirt_config
 
+# Restart libvirtd if something changed
   - name: Restart libvirtd
     service:
       name: libvirtd
       state: restarted
     become: yes
+    when: libvirt_config.changed
 
 # Download base image if it does not exist
   - name: Check if the base image file exists
