@@ -23,6 +23,13 @@
       state: installed
     become: yes
 
+  - name: Check proper processor flags
+    shell: >
+      awk '/^flags/ && /ssse3/ && /pdpe1gb/ {r=1} END {exit !r}' /proc/cpuinfo || {
+        print 'Processor does not have all the flags sss3 and pdpe1gb. Can'\''t continue.';
+        exit 1;
+      }
+
 # Check hugepages are configured
   - name: Check if we have hugepages
     shell: awk -e '/Hugepagesize:/ {print $2}' /proc/meminfo
