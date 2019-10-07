@@ -8,11 +8,8 @@
   - name: install dependencies
     yum:
       name:
-        - qemu-kvm
-        - libvirt-daemon-qemu
         - libvirt-daemon-kvm
-        - libvirt
-        - iperf3
+        - policycoreutils-python-utils
         - virt-install
         - libguestfs-tools-c
         - python3-lxml
