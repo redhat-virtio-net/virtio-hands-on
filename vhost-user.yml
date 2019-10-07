@@ -280,8 +280,8 @@
       - "Now the Guest VM is running. To go inside the VM type:
            $ virsh console {{ guest_name }}"
       - "A Tmux session has been created in the host. Attach to it by running:
-           $ sudo tmux atach-session"
+           $ sudo tmux attach-session -t testpmd-session"
       - "A Tmux session has been created in the guest. Attach to it by running:
-           $ tmux atach-session"
+           $ ssh root@{{ guest_ip }} -t -- tmux attach -t guest-testpmd-session"
 
 
