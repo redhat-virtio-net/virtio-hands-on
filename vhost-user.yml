@@ -186,6 +186,14 @@
       timeout: 5
     with_items: " {{ vhost_ifaces }}"
 
+  - name: Change file ownership, group and permissions
+    file:
+      path: "{{ item.path }}"
+      owner: qemu
+      group: qemu
+      mode: '0644'
+    with_items: " {{ vhost_ifaces }}"
+
   - name: Change the svirt_t domain to permissive
     selinux_permissive:
       name: svirt_t
