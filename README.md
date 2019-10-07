@@ -79,7 +79,7 @@ After running the playbook you can:
 - Inspect the host's testpmd application by running:
 
 ```
-$ tmux attach-session testpmd-session
+$ tmux attach-session -t testpmd-session
 ```
 
 - Jump into the guest by running:
