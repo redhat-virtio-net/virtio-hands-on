@@ -179,9 +179,11 @@
     shell: sh /tmp/tpmd.sh
     become: yes
 
-  - name: Wait for testpmd to initialize
+  - name: Wait for testpmd to initialize unix sockets
     wait_for:
+      path: "{{ item.path }}"
       timeout: 5
+    with_items: " {{ vhost_ifaces }}"
 
   - name: Start the VM
     virt:
