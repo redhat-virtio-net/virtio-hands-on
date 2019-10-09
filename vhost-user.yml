@@ -8,19 +8,24 @@
   - name: install dependencies
     yum:
       name:
-        - qemu-kvm
-        - libvirt-daemon-qemu
         - libvirt-daemon-kvm
-        - libvirt
-        - iperf3
+        - policycoreutils-python-utils
         - virt-install
         - libguestfs-tools-c
         - python3-lxml
+        - sshpass
         - dpdk-tools
         - tmux
         - grubby
       state: installed
     become: yes
+
+  - name: Check proper processor flags
+    shell: >
+      awk '/^flags/ && /ssse3/ && /pdpe1gb/ {r=1} END {exit !r}' /proc/cpuinfo || {
+        print 'Processor does not have all the flags sss3 and pdpe1gb. Can'\''t continue.';
+        exit 1;
+      }
 
 # Check hugepages are configured
   - name: Check if we have hugepages
@@ -71,10 +76,11 @@
       append: yes
     become: yes
 
-  - name: Restart libvirtd
+# libvirtd if something changed
+  - name: Start libvirtd
     service:
       name: libvirtd
-      state: restarted
+      state: started
     become: yes
 
 # Download base image if it does not exist
@@ -158,7 +164,7 @@
       src: vhost_user-testpmd.j2
 
   - name: Kill existing instances of testpmd
-    shell: pgrep testpmd | xargs kill
+    shell: pgrep testpmd | xargs --no-run-if-empty kill
     ignore_errors: true
     become: yes
 
@@ -178,9 +184,24 @@
     shell: sh /tmp/tpmd.sh
     become: yes
 
-  - name: Wait for testpmd to initialize
+  - name: Wait for testpmd to initialize unix sockets
     wait_for:
+      path: "{{ item.path }}"
       timeout: 5
+    with_items: " {{ vhost_ifaces }}"
+
+  - name: Change file ownership, group and permissions
+    file:
+      path: "{{ item.path }}"
+      owner: qemu
+      group: qemu
+      mode: '0644'
+    with_items: " {{ vhost_ifaces }}"
+
+  - name: Change the svirt_t domain to permissive
+    selinux_permissive:
+      name: svirt_t
+      permissive: true
 
   - name: Start the VM
     virt:
@@ -259,7 +280,7 @@
     with_items: "{{ vhost_ifaces }}"
 
   - name: killing testpmd if running
-    shell: pgrep testpmd | xargs kill
+    shell: pgrep testpmd | xargs --no-run-if-empty kill
     ignore_errors: true
 
   - name: killing existing tmux sessions
@@ -271,7 +292,7 @@
       dest: /tmp/tpmd.sh
       src: vhost_user-guest-testpmd.j2
 
-  - name: Start testpmd in the host
+  - name: Start testpmd in the guest
     shell: sh /tmp/tpmd.sh
 
   - debug:
@@ -279,8 +300,8 @@
       - "Now the Guest VM is running. To go inside the VM type:
            $ virsh console {{ guest_name }}"
       - "A Tmux session has been created in the host. Attach to it by running:
-           $ sudo tmux atach-session"
+           $ sudo tmux attach-session -t testpmd-session"
       - "A Tmux session has been created in the guest. Attach to it by running:
-           $ tmux atach-session"
+           $ ssh root@{{ guest_ip }} -t -- tmux attach -t guest-testpmd-session"
 
 
